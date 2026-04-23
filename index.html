@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consulting Presence Report — Micah Roberts & April Clark</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto+Condensed:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --green: #3F9107;
+    --green-mid: #94CF35;
+    --green-light: #D7F5C3;
+    --blue: #2A80E4;
+    --orange: #F4913C;
+    --crimson: #F93A57;
+    --black: #000000;
+    --white: #FFFFFF;
+    --gray-light: #F5F5F5;
+    --gray-mid: #B1B1B1;
+    --gray-dark: #444441;
+    --text: #1a1a1a;
+    --text-muted: #666666;
+    --border: #E0E0E0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Roboto Condensed', Arial, sans-serif;
+    font-weight: 400;
+    background: #FFFFFF;
+    color: var(--text);
+    line-height: 1.5;
+    padding: 40px 32px 60px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  h1, h2, h3 { font-family: 'Playfair Display', Georgia, serif; font-weight: 700; }
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding-bottom: 16px;
+    border-bottom: 3px solid var(--green);
+    margin-bottom: 32px;
+  }
+  .header-meta { text-align: right; }
+  .header-meta .eyebrow {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+  }
+  .header-meta h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin-top: 4px;
+  }
+  .header-meta .date {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .kpi-card {
+    background: var(--gray-light);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .kpi-card.alert { border-top: 3px solid var(--orange); }
+  .kpi-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .kpi-value {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.1;
+    font-family: 'Roboto Condensed', Arial, sans-serif;
+  }
+  .kpi-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 5px;
+  }
+  .section-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .legend-line {
+    width: 20px;
+    border-top: 2px dashed var(--orange);
+    display: inline-block;
+  }
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+    margin-bottom: 36px;
+  }
+  .kpi-target-bar {
+    background: var(--gray-light);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .kpi-target-bar .target-badge {
+    background: var(--orange);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .kpi-target-bar .target-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .attainment-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .attainment-row {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+  }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-block;
+  }
+  .observations { margin-bottom: 32px; }
+  .insight {
+    padding: 10px 14px;
+    border-left: 3px solid var(--green);
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    background: #FAFAFA;
+    border-radius: 0 4px 4px 0;
+  }
+  .insight.warn { border-left-color: var(--orange); }
+  .insight.alert { border-left-color: var(--crimson); }
+  .insight strong { color: var(--text); font-weight: 700; }
+  .footnote {
+    font-size: 11px;
+    color: var(--text-muted);
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  @media (max-width: 600px) {
+    body { padding: 24px 16px 40px; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .header { flex-direction: column; gap: 16px; }
+    .header-meta { text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <svg viewBox="0 0 341.98 104.47" xmlns="http://www.w3.org/2000/svg" style="width:150px;height:auto">
+    <g>
+      <path d="M132.32,41.42c-2.59-2.5-6.31-3.9-10.79-3.9s-8.2,1.4-10.79,3.9c-1.56,1.51-2.71,3.41-3.37,5.62-.67-2.22-1.81-4.12-3.37-5.62-2.59-2.5-6.31-3.9-10.79-3.9s-8.2,1.4-10.79,3.9c-2.6,2.5-4.05,6.08-4.05,10.41s1.45,7.91,4.05,10.41c2.59,2.5,6.31,3.9,10.79,3.9s8.2-1.4,10.79-3.9c1.56-1.51,2.71-3.41,3.37-5.62.67,2.22,1.81,4.11,3.37,5.62,2.59,2.5,6.31,3.9,10.79,3.9s8.2-1.4,10.79-3.9c2.6-2.5,4.05-6.08,4.05-10.41s-1.45-7.91-4.05-10.41ZM93.2,62.15c-2.05,0-4.78-1.07-4.78-10.32s2.73-10.32,4.78-10.32,4.78,1.07,4.78,10.32-2.73,10.32-4.78,10.32ZM121.53,62.15c-2.05,0-4.78-1.07-4.78-10.32s2.73-10.32,4.78-10.32,4.78,1.07,4.78,10.32-2.73,10.32-4.78,10.32Z"/>
+      <path d="M76.42,26.99h-9.18v38.34h9.18V26.99Z"/>
+      <path d="M171.96,37.52c-3.64,0-6.77,1.55-8.83,4.37h-.02c-1.48-2.82-4.27-4.37-7.89-4.37-3.15,0-5.77,1.14-7.99,3.5v-2.69h-8.91v27h9.18v-15.12c0-3.57.75-7.83,4.32-7.83,2.3,0,3.24,1.83,3.24,6.32v16.63h9.18v-15.12c0-3.57.75-7.83,4.32-7.83,2.3,0,3.24,1.83,3.24,6.32v16.63h9.18v-18.52c0-5.73-3.46-9.29-9.02-9.29Z"/>
+      <path d="M301.76,58.31h-8.02l1.38-1.9c1.26.33,2.75.5,4.43.5,7.5,0,12.74-3.91,12.74-9.5,0-1.52-.39-2.73-.77-3.71-.2-.52-.16-.94.13-1.27.5-.58,1.75-.85,3.1-.73,0,0-.85-6.03-.96-6.88-1.79,0-3.29.71-4.22,1.83-.78.93-1.16,2.13-1.1,3.41-2.68-1.77-5.38-2.53-8.91-2.53-7.74,0-12.74,3.82-12.74,9.72,0,3.46,1.84,6.3,5.2,8.04l-7.09,9.34v-17.8c0-5.56-3.73-9.28-9.28-9.29-3.14,0-5.94,1.24-8.26,3.66-.07-.52-.4-2.85-.4-2.85h-8.51v15.79c0,2.26-2.52,7.62-3.88,7.64-.73.01-.92-.63-.92-3.08v-12.15c0-5.39-4.47-9.02-11.12-9.02s-11.84,2.85-12.33,7.71l-1.08-7.7h-.2c-3.96,0-6.92,2.17-8.37,6.13v-5.32h-9.18s0,13.12,0,13.12c0,1.72-.28,2.58-.76,3.62-2.25,4.51-6.57,6.64-10.64,6.64-4.99,0-7.24-2.59-7.75-10.26h17.21v-1.13c0-7.65-5.04-12.8-12.53-12.8-8.23,0-13.99,5.88-13.99,14.31s5.95,14.31,14.47,14.31c5.36,0,11.18-2.17,13.98-6.81v6h9.18v-11.23c0-5.71,2.1-8.26,6.8-8.26.94,0,1.78.1,2.58.32l.34.07h9.57l-.07-.29c-.46-2.27-.26-3.15.58-4.18.54-.66,1.33-1,2.34-1,1.82,0,2.86,1.08,2.86,2.97,0,2.13-1.13,3.69-3.1,4.28l-4.32,1.35c-5.42,1.7-8.29,4.8-8.29,8.95,0,4.39,3.35,7.83,7.61,7.83,3.27,0,5.94-1.66,7.93-4.93.67,4.57,4.87,4.93,6.17,4.93,3.31,0,5.89-1.89,6.9-5.05v4.24h9.18v-15.12c0-4.98,1.67-7.83,4.59-7.83,2.39,0,3.51,2.01,3.51,6.32v16.63h14.6c-2.05.93-3.26,3.68-3.26,5.62,0,3.91,5.12,6.53,12.74,6.53,9.22,0,15.17-5.13,15.17-11.39,0-5.55-4.95-7.78-13.23-7.78ZM299.61,40.75c2.22.02,3.27,2.15,3.24,6.51-.04,4.36-1.14,6.42-3.35,6.4-2.22-.02-3.28-2.13-3.24-6.46.04-4.32,1.14-6.47,3.35-6.45ZM196.64,40.76c2.58,0,3.89,2.12,3.89,6.32v.59h-8.42c.11-2.71.87-6.91,4.53-6.91ZM244.48,55.34c0,2.5-1.53,4.54-3.4,4.54-1.54,0-2.54-1.38-2.54-3.51,0-2.35,1.19-3.98,3.55-4.82l2.39-.85v4.64ZM299.81,74.23c-4.46,0-7.34-1.65-7.34-4.21,0-1.47.96-3.7,3.03-4.7h5.28c4.1,0,6.64,2.45,6.64,4.64,0,2.51-3.13,4.27-7.61,4.27Z"/>
+      <path d="M65.3,51.71c0,1.14-.11,2.27-.33,3.38-.13.77-.31,1.53-.56,2.27-3.31,9.86-17.01,11.35-24.09,4.78-2.52-2.34-3.77-5.64-3.79-9.19-2.69,3.09-3.56,7.5-3.56,7.5l-5.97-7.02c3.15-4.2,6.44-7.29,9.53-9.56v-16.88h9.19v11.86c1.77-.79,3.53-1.33,6.36-1.33,7.06,0,13.24,5.51,13.24,14.19ZM55.87,51.83c0-9.25-2.73-10.32-4.78-10.32s-4.78,1.07-4.78,10.32,2.73,10.32,4.78,10.32,4.78-1.07,4.78-10.32Z"/>
+    </g>
+  </svg>
+  <div class="header-meta">
+    <div class="eyebrow">Consulting presence report</div>
+    <h1>Client touchpoint analysis</h1>
+    <div class="date">Jan 24 – Apr 23, 2026 &nbsp;·&nbsp; 90 days &nbsp;·&nbsp; Micah Roberts &amp; April Clark</div>
+  </div>
+</header>
+
+<div class="kpi-grid">
+  <div class="kpi-card alert">
+    <div class="kpi-label">KPI target</div>
+    <div class="kpi-value" style="color:var(--orange)">13</div>
+    <div class="kpi-sub">meetings / week</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Micah — weeks on target</div>
+    <div class="kpi-value" style="color:var(--crimson)">1 <span style="font-size:16px;color:var(--text-muted);font-weight:400">/ 13</span></div>
+    <div class="kpi-sub">8% of weeks · avg 6.2/week</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">April — weeks on target</div>
+    <div class="kpi-value" style="color:var(--crimson)">0 <span style="font-size:16px;color:var(--text-muted);font-weight:400">/ 13</span></div>
+    <div class="kpi-sub">0% of weeks · avg 6.5/week</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">Combined 90-day total</div>
+    <div class="kpi-value" style="color:var(--text)">165</div>
+    <div class="kpi-sub">target was 338 · 49% attainment</div>
+  </div>
+</div>
+
+<div class="section-label">Weekly touchpoints vs KPI target (13 / week)</div>
+<div class="legend">
+  <span class="legend-item"><span class="legend-swatch" style="background:var(--green)"></span>Micah Roberts</span>
+  <span class="legend-item"><span class="legend-swatch" style="background:var(--blue)"></span>April Clark</span>
+  <span class="legend-item"><span class="legend-line"></span>13/week target</span>
+</div>
+<div class="chart-wrap" style="height:240px">
+  <canvas id="wChart" role="img" aria-label="Weekly consulting touchpoints for Micah and April. KPI target is 13 per week. Micah hit target once (Feb 2 week). April never reached 13.">Weekly data Jan 26 to Apr 20. KPI target 13/week. Micah peak 13, April peak 11.</canvas>
+</div>
+
+<div class="section-label">Monthly totals vs proportional target (13 × weeks in period)</div>
+<div class="legend">
+  <span class="legend-item"><span class="legend-swatch" style="background:var(--green)"></span>Micah Roberts</span>
+  <span class="legend-item"><span class="legend-swatch" style="background:var(--blue)"></span>April Clark</span>
+  <span class="legend-item"><span class="legend-line"></span>Monthly target</span>
+</div>
+<div class="chart-wrap" style="height:230px">
+  <canvas id="mChart" role="img" aria-label="Monthly consulting touchpoints grouped bar chart. Micah: Jan 8, Feb 44, Mar 26, Apr 2. April: Jan 5, Feb 24, Mar 40, Apr 16. Monthly targets: Jan 15, Feb 52, Mar 58, Apr 43.">Micah: Jan 8, Feb 44, Mar 26, Apr 2. April: Jan 5, Feb 24, Mar 40, Apr 16.</canvas>
+</div>
+
+<div class="section-label">April's session type breakdown</div>
+<div class="chart-wrap" style="height:205px">
+  <canvas id="sChart" role="img" aria-label="Horizontal bar chart of April Clark session types. DB Health Check 31, Quarterly Strategy 18, Campaign Cleanup 12, Mass Delete 8, Grant Tracking 3, Other 13.">DB Health Check 31, Quarterly Strategy 18, Campaign Cleanup 12, Mass Delete 8, Grant Tracking 3, Other 13.</canvas>
+</div>
+
+<div class="observations">
+  <div class="section-label">Key observations</div>
+  <div class="insight alert">Neither consultant is consistently hitting the 13/week target. <strong>Micah met it exactly once</strong> (Feb 2 week, 13 sessions); April never met it, peaking at 11. Both are running at roughly 50–70% of the weekly goal.</div>
+  <div class="insight warn">The combined 90-day total was <strong>165 against a target of 338</strong> (13/week × 26 combined person-weeks) — a 49% attainment rate. Micah averaged ~6.2/week; April averaged ~6.5/week.</div>
+  <div class="insight">Micah's February came closest (44 sessions ≈ 11/week). April's March was her best (40 sessions ≈ 9/week). <strong>Even at peak, both are 2–4 sessions/week short</strong> of the KPI.</div>
+  <div class="insight">Consulting loads run <strong>counter-cyclically</strong>: Micah's peak was February, April's was March. Coordinating scheduling could help distribute capacity more evenly and lift combined weekly attainment.</div>
+</div>
+
+<p class="footnote">* January and April are partial months. Monthly KPI targets are proportional to the number of weeks in the analysis window for that period. Internal-only events and auto-generated calendar buffer blocks excluded from all totals. Data pulled April 23, 2026.</p>
+
+<script>
+  const wkLabels = ['Jan 26','Feb 2','Feb 9','Feb 16','Feb 23','Mar 2','Mar 9','Mar 16','Mar 23','Mar 30','Apr 6','Apr 13','Apr 20'];
+  const micahW = [8,13,12,10,9,11,1,3,9,3,1,0,0];
+  const aprilW = [5,4,4,5,11,9,7,9,11,9,0,7,1];
+
+  new Chart(document.getElementById('wChart'), {
+    type: 'line',
+    data: {
+      labels: wkLabels,
+      datasets: [
+        { label: 'Micah', data: micahW, borderColor: '#3F9107', backgroundColor: 'rgba(63,145,7,0.08)', fill: true, tension: 0.3, pointRadius: 4, borderWidth: 2 },
+        { label: 'April', data: aprilW, borderColor: '#2A80E4', backgroundColor: 'rgba(42,128,228,0.08)', fill: true, tension: 0.3, pointRadius: 4, borderWidth: 2, borderDash: [4,2] },
+        { label: 'Target', data: Array(13).fill(13), borderColor: '#F4913C', borderDash: [6,3], borderWidth: 2, pointRadius: 0, fill: false, tension: 0 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { autoSkip: true, maxRotation: 45, font: { family: 'Roboto Condensed', size: 11 } } },
+        y: { beginAtZero: true, max: 18, ticks: { stepSize: 2, font: { family: 'Roboto Condensed', size: 11 } } }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('mChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Jan*','Feb','Mar','Apr*'],
+      datasets: [
+        { label: 'Micah', data: [8,44,26,2], backgroundColor: '#3F9107', borderRadius: 3 },
+        { label: 'April', data: [5,24,40,16], backgroundColor: '#2A80E4', borderRadius: 3 },
+        { label: 'Target', data: [15,52,58,43], type: 'line', borderColor: '#F4913C', borderDash: [6,3], borderWidth: 2, pointRadius: 5, pointBackgroundColor: '#F4913C', fill: false, order: 0 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { autoSkip: false, font: { family: 'Roboto Condensed', size: 12 } } },
+        y: { beginAtZero: true, max: 70, ticks: { stepSize: 10, font: { family: 'Roboto Condensed', size: 11 } } }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('sChart'), {
+    type: 'bar',
+    data: {
+      labels: ['DB health check','Quarterly strategy','Campaign cleanup','Mass delete prep','Grant tracking','Other'],
+      datasets: [{ data: [31,18,12,8,3,13], backgroundColor: ['#2A80E4','#3F9107','#94CF35','#6BC8FA','#F4913C','#B1B1B1'], borderRadius: 3 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, max: 35, ticks: { font: { family: 'Roboto Condensed', size: 11 } } },
+        y: { ticks: { font: { family: 'Roboto Condensed', size: 12 } } }
+      }
+    }
+  });
+</script>
+</body>
+</html>
